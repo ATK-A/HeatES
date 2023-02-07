@@ -1,0 +1,114 @@
+api_version: v1beta2
+kind: M
+metadata: 
+  description: "Heat Ensemble Statistics (HeatES) carries out analysis if an ensemble of output from DAFNI, created for the OpenCLIM project. Outputs allow for the recreation of figures in Jenkins et al. 2022 (ERL). \n"
+  display_name: HeatES
+  name: harm
+  publisher: "University of Bristol"
+  source_code: "https://github.com/OpenCLIM/HEAT"
+  summary: "OpenCLIM Heat Ensemble Statistics (HeatES)"
+spec: 
+  inputs: 
+    parameters:
+      - 
+        name: MEANMEDIAN
+        title: Multi-model mean or median
+        description: Choose to calculate multi-model mean or median across the ensemble
+        type: string
+        options: 
+          - name: Mean
+            title: Mean
+          - name: Median
+            title: Median
+        default: Mean
+        required: true
+      - 
+        name: PLOW
+        title: Lower uncertainty bound (%)
+        description: Choose lower uncertainty bound calculated as a percentile across the ensemble
+        type: number
+        min: 0
+        max: 100
+        default: 5
+        required: false 
+      - 
+        name: PHIGH
+        title: Upper uncertainty bound (%)
+        description: Choose upper uncertainty bound calculated as a percentile across the ensemble
+        type: number
+        min: 0
+        max: 100
+        default: 95
+        required: false 
+      - 
+        name: REGIONTOTAVE
+        title: Regional average or total
+        description: Calculate an average or total for a given region
+        type: string
+        options: 
+          - name: Mean
+            title: Regional mean
+          - name: Total
+            title: Regional total
+        required: false 
+      -
+        name: REGION
+        title: Acclimatisation parameterisation
+        description: Choose acclimatisation parameterisation
+        type: string
+        options: 
+          - name: Scotland
+            title: Scotland
+          - name: NorthEast
+            title: North East
+          - name: NorthWest
+            title: North West
+          - name: YorkshireHumber
+            title: Yorkshire and the Humber
+          - name: EastMidlands
+            title: East Midlands
+          - name: WestMidlands
+            title: West Midlands
+          - name: EastEngland
+            title: East of England
+          - name: GreaterLondon
+            title: Greater London
+          - name: SouthEast
+            title: South East
+          - name: SouthWest
+            title: South West
+          - name: Wales
+            title: Wales
+          - name: NorthernIreland
+            title: Northern Ireland
+        required: false 
+      - 
+        name: VARNAME
+        title: Output variable to analyse
+        description: Select the correct HARM impact variable to load from the netCDF data
+        type: string
+        options: 
+          - name: aveheatmort
+            title: Annual average heat-related mortality
+          - name: avecoldmort
+            title: Annual average cold-related mortality
+          - name: aveheatmortinc
+            title: Annual average heat-related mortality per increment
+          - name: avecoldmortinc
+            title: Annual average cold-related mortality per increment
+        default: aveheatmort
+        required: false 
+
+    dataslots: 
+      - 
+        description: "A dataslot that should contain some climate netCDFs"
+        name: Climate
+        path: inputs/Climate/
+        required: false
+      -
+        default:
+          - 64072bbe-c09c-4945-aeee-4dbb45653e27
+        description: "A dataslot for the required pre-processed HEAT data"
+        name: PreProcessedData
+        path: inputs/PreProcessedData/
+        required: true
