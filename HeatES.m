@@ -23,7 +23,6 @@ env_plow = getenv('PLOW');
 env_phigh = getenv('PHIGH');
 env_regta = getenv('REGTOTAVE');
 env_reg = getenv('REGION');
-env_age = getenv('AGE');
 
 if ~isempty(env_file)
     disp(['Loading files with name: ', char(string(env_file))])
@@ -40,6 +39,8 @@ if ~isempty(env_varn)
         inputs.Variable = 'average heat mortality per increment';
     elseif strcmp(string(env_varn),'avecoldmortinc')
         inputs.Variable = 'average cold mortality per increment';
+    elseif strcmp(string(env_varn),'tas')
+        inputs.Variable = 'tas';
     end
 end
 
@@ -116,27 +117,6 @@ if isfield(inputs,'Region')
     end
 end
 
-if ~isempty(env_age)
-    disp(['Calculating analysis for ', char(string(env_age))])
-    inputs.Age = char(string(env_age));
-end
-
-if isfield(inputs,'Age')
-    % Select correct region ID for subsetting from pre-processed
-    % regions mask
-    if strcmp(inputs.Age,'all-ages')
-        a=1;
-    elseif strcmp(inputs.Age,'ages0-64')
-        a=2;
-    elseif strcmp(inputs.Age,'ages65-74')
-        a=3;
-    elseif strcmp(inputs.Age,'ages75-84')
-        a=4;
-    elseif strcmp(inputs.Age,'ages85+')
-        a=5;
-    end
-end
-    
 disp('-----')
 disp(' ')
 
@@ -145,7 +125,7 @@ disp(' ')
 % Find list of files to load and define parameters for input climate dataset
 % Climatedirin = '/data/inputs/ClimateData/';
 Climatedirin = '/data/inputs/Climate/';
-files = dir([Climatedirin '*' Inputs.FileName '.nc']);
+files = dir([Climatedirin '*.nc']);
 
 % Assuming data files exist, continue with loading
 if isempty(files)
@@ -154,18 +134,14 @@ if isempty(files)
 else
     disp('The following netCDFs are being loaded:')
     ls([Climatedirin '*.nc'])
-    disp('-----')    
+    disp('-----')
     disp(' ')
 end
 
 % Load one file as an example to check if data is in 3D
 file = ([files(1).folder,'/',files(1).name]);
 datatest = double(ncread(file,char(inputs.Variable)));
-% if ~exist('a','var')
-    catdim = ndims(datatest) + 1;
-% else
-%     catdim = ndims(datatest);
-% end
+catdim = ndims(datatest) + 1;
 
 % Load all of the files between the start and end file
 for i = 1:length(files)
@@ -174,20 +150,12 @@ for i = 1:length(files)
     file = ([files(i).folder,'/',files(i).name]);
     
     % Load temperature for the correct region and concatenate through time if necessary
-    if i == startload
-%         if ~exist('a','var')
-            data = double(ncread(file,char(inputs.Variable)));
-%         else
-%             data = double(ncread(file,char(inputs.Variable),[1 1 a],[Inf Inf 1]));
-%         end
+    if i == 1
+        data = double(ncread(file,char(inputs.Variable)));
         
     else
+        data = cat(catdim,data,double(ncread(file,char(inputs.Variable))));
         
-%         if ~exist('a','var')
-            data = cat(catdim,data,double(ncread(file,char(inputs.Variable))));
-%         else
-%             data = cat(catdim,data,double(ncread(file,char(inputs.Variable),[1 1 a],[Inf Inf 1])));
-%         end
     end
 end
 
@@ -201,8 +169,8 @@ elseif MMM == 2
     MMMdata = nanmedian(data,catdim);
 end
 
-MMlow = prctile(data,Inputs.pLow,catdim);
-MMhigh = prctile(data,Inputs.pHigh,catdim);
+MMlow = prctile(data,inputs.pLow,catdim);
+MMhigh = prctile(data,inputs.pHigh,catdim);
 
 disp('               Done.')
 disp('-----')
@@ -252,7 +220,7 @@ if exist('RTA','var')
         reg_mask = UKregions2;
         
         averaging = 1;
-
+        
     else
         disp('Input data is on unknown grid: map plotting and area averaging/totalling disabled.')
         averaging = 0;
@@ -288,7 +256,7 @@ if exist('RTA','var')
     
     disp('-----')
     disp(' ')
-
+    
 end
 
 
@@ -304,12 +272,22 @@ if catdim == 3
     UK_subplot(MMMdata.*datamask,['Multi-model ' inputs.MeanMedian],Outputdir,lats,lons)
     UK_subplot(MMlow.*datamask,['Lower bound at ' num2str(inputs.pLow) ' percentile'],Outputdir,lats,lons)
     UK_subplot(MMhigh.*datamask,['Upper bound at ' num2str(inputs.pHigh) ' percentile'],Outputdir,lats,lons)
-
+    
     
 elseif catdim == 4
-    disp('3D output saving still to be added. No output saved')
+    if length(MMMdata(1,1,:)) == 5
+        disp('Assuming output saved with 5 age categories in 3rd dimension')
+        
+        agecats = {'0-99','0-64','65-74','75-84','85-99'};
+        for ages = 1:5
+            dlmwrite([Outputdir,'MMM',char(agecats(ages)),'.csv'],MMMdata(:,:,ages), 'delimiter', ',', 'precision', '%i')
+            dlmwrite([Outputdir,'MMlow',char(agecats(ages)),'.csv'],MMlow(:,:,ages), 'delimiter', ',', 'precision', '%i')
+            dlmwrite([Outputdir,'MMhigh',char(agecats(ages)),'.csv'],MMhigh(:,:,ages), 'delimiter', ',', 'precision', '%i')
+        end
+    else
+        disp('3D output saving still to be added. No output saved')
+    end
 end
-
 disp('Analysis complete!')
 
 endt = now;
